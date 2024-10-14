@@ -1,0 +1,24 @@
+
+questions: 
+    salary: 
+      q1: What is your expected salary range?
+      q2: Are you open to salary negotiations based on experience and performance?
+    
+    experience: 
+      q1: How many years of experience do you have in this field?
+      q2: Have you held any leadership roles in your previous jobs?
+    
+    perks: 
+      q1: What are the most important perks and benefits you're looking for?
+      q2: Do you prioritize remote work or flexible hours?
+    
+    education: 
+      q1: What is your highest level of educational qualification?
+      q2: Do you have any additional certifications relevant to this role?
+    
+    about_company: 
+      q1: What do you know about our company and its mission?
+      q2": Why do you want to work for our company?
+    
+  
+

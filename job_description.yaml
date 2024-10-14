@@ -1,0 +1,35 @@
+Job_Description:
+  SALARY:
+    Q1: What salary and benefits does Krowstel offer for the Data Scientist position?
+    A1: Competitive salary and benefits
+    Q2: Does Krowstel provide flexible working arrangements, and what are they?
+    A2: Flexible working arrangements, including remote options
+  EXPERIENCE:
+    Q1: How many years of experience are required for the Data Scientist role at Krowstel?
+    A1: 3+ years
+    Q2: What kind of experience is preferred for candidates applying to this Data
+      Scientist role (e.g., NLP, time-series data)?
+    A2: Experience with time-series data, NLP techniques, and A/B testing
+  EDUCATION:
+    Q1: What is the minimum educational requirement for the Data Scientist position
+      at Krowstel?
+    A1: "Bachelor\u2019s or Master\u2019s in Data Science, Statistics, Computer Science,\
+      \ Mathematics, or a related field"
+    Q2: Is a PhD considered a plus for this role?
+    A2: true
+  RESPONSIBILITIES:
+    Q1: What are the key responsibilities of a Data Scientist at Krowstel regarding
+      data collection and preprocessing?
+    A1: Collaborate with data engineers to collect, clean, and preprocess data from
+      various sources
+    Q2: How does the role involve collaboration with other teams, such as engineers
+      and product teams?
+    A2: Work with engineers to deploy models and product teams to translate business
+      needs into data solutions
+  SKILLS:
+    Q1: Which programming languages and data libraries are essential for this position?
+    A1: Proficiency in Python or R, with strong knowledge of data libraries like Pandas,
+      Numpy, and Scikit-learn
+    Q2: What cloud platforms should the candidate be familiar with for the Data Scientist
+      role?
+    A2: Knowledge of cloud platforms (AWS, Google Cloud, or Azure)
