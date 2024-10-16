@@ -72,14 +72,14 @@ async def send_to_llm(chat_history, context):
 
 
 # Function to retrieve the chat history and compare with incoming data
-async def compare_chat_history(id_: str, data: List[Message]):
+async def compare_chat_history(id_: str, data: List[Message],chathistory):
     # Retrieve chat history from MongoDB asynchronously
-    chat_history =  database_handler.collection.find_one({"id_": id_}, {"data": 1, "_id": 0})
+    chat_history =  chathistory
     
     if not chat_history:
         return [], []  # Return empty lists if no chat history is found
     
-    previous_messages = chat_history.get("data", [])
+    previous_messages = chat_history
     if not previous_messages:
         previous_messages = []
     

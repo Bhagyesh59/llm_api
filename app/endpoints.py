@@ -89,7 +89,7 @@ async def chat_agent(request: Chat):
 async def create_chat_session(request: Name):
     # Create a new chat session
     id_ =deterministic_uuid(request.id_)
-    database_handler.collection.insert_one({"id_": id_, "chat_history": []})
+    database_handler.collection.insert_one({"id_": id_, "chat_history": [], "chat_summary":"","question_answered":[],"question_id":0})
     print(id_)
     # Respond with the session ID
     return {"session_id": id_}
@@ -101,28 +101,25 @@ async def send_message(request: SendMessageEvent):
     platform = request.platform
     timestamp = request.timestamp
     data = request.data
-    # print(data)
-
+    document=database_handler.collection.find_one({"id_": id_})
+    chathistory=document['chat_history']
     # Retrieve and compare chat history
-    previous_messages, new_messages = await compare_chat_history(id_, data)
+    previous_messages, new_messages = await compare_chat_history(id_, data, chathistory)
     
     if new_messages:
-        # Update the chat history only if there are new messages
-        database_handler.collection.update_one(
-            {"id_": id_},
-            {"$push": {"data": {"$each": new_messages}}}
-        )
+        
         updated_chat_history = previous_messages + new_messages
     else:
+        
         updated_chat_history = previous_messages
     
     # Get the most recent user message
     user_message = data[-1].message
-    
+    document["chat_history"].append({"user_input": user_message})
     # Retrieve relevant context from the vector store
     context = await retrieve_context_from_vector_store(user_message)
     answer = ''
-    question=get_next_question(artifacts.question_flow,artifacts.questionid,answer)
+    question=get_next_question(artifacts.question_flow,document['question_id'],answer)
     print(question['next_question'])
     prompt=f'''
     Question flow:
@@ -140,14 +137,14 @@ async def send_message(request: SendMessageEvent):
 
     # Send updated chat history and context to the LLM for a response
     llm_response =  chat.chat_responce(prompt)
-    
-    
+    llm_response=llm_response.choices[0].message.content
     if 'Answer' in llm_response:
-        print(llm_response)
+        # print(llm_response)
         # Extract the answer from the LLM response
         answer = llm_response
         question, answer=parse_question_answer(llm_response)
-        next_question=get_next_question(artifacts.question_flow,artifacts.questionid+1,answer)
+        print("\n"+"answer: "+answer+"\n")
+        next_question=get_next_question(artifacts.question_flow,document['question_id'],answer)
         prompt=f'''
         Question flow:
         {next_question["next_question"]}
@@ -165,55 +162,51 @@ async def send_message(request: SendMessageEvent):
        
         # Send updated chat history and context to the LLM for a response
         llm_response =  chat.chat_responce(prompt)
-        print(llm_response)
-        
+        # print(llm_response.choices[0].message.content)
+        llm_response=llm_response.choices[0].message.content
+    
+    
+        document["chat_history"].append({"llm_response":llm_response})
+        document["question_answered"].append({"question":question, "answer":answer})
+        document["question_id"]+=1
         
         database_handler.collection.update_one(
             {"id_": id_},
-            {"$push": 
-                {"data":
-                {"sender": "assistent",
-                 "message": llm_response,
-                 "timestamp":
-                    int(datetime.datetime.now().timestamp())
-                    }
-                }
-            }
+            {"$set": document}
         )
         
         
         responce={
-            "session_id": id_,
+            "id_": id_,
             "type": etype,
             "platform": platform,
             "status": "success",
             "updated_chat_history": updated_chat_history,
             "llm_response": llm_response,
             "timestamp": timestamp,
+            "temp":"0"
         }
     else:
+        
+        document["chat_history"].append({"llm_response":llm_response})
+        
+        
+        # print(document)
         # Update the chat history with the LLM response
         database_handler.collection.update_one(
             {"id_": id_},
-            {"$push": 
-                {"data":
-                {"sender": "assistent",
-                 "message": llm_response,
-                 "timestamp":
-                    int(datetime.datetime.now().timestamp())
-                    }
-                }
-            }
+            {"$set": document}
         )
     
         responce={
-            "session_id": id_,
+            "id_": id_,
             "type": etype,
             "platform": platform,
             "status": "success",
             "updated_chat_history": updated_chat_history,
             "llm_response": llm_response,
             "timestamp": timestamp,
+            "temp":"1"
         }
     # Respond with the updated chat history
     return responce
