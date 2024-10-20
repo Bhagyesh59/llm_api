@@ -104,7 +104,7 @@ def get_next_question(questions: list, current_question_id: int, answers: dict):
     next_question = questions[current_question_id]
     
     return {
-        "next_question_id": current_question_id + 1,
+        "next_question_id": current_question_id + 1 if current_question_id else current_question_id,
         "next_question": next_question,
         "answers_so_far": answers
     }
@@ -130,4 +130,19 @@ def parse_question_answer(llm_response: str) -> dict:
     answer = answer_match.group(1).strip() if answer_match else None
 
     return question, answer
+
+import ast
+import json
+
+def parse_llm_output(output):
+    try:
+        # Try parsing using json.loads (assumes valid JSON format with double quotes)
+        return json.loads(output)
+    except json.JSONDecodeError:
+        try:
+            # If JSON parsing fails, try using ast.literal_eval for single quotes
+            return ast.literal_eval(output)
+        except (ValueError, SyntaxError) as e:
+            # Return a message if parsing fails
+            return f"Parsing failed: {e}"
 
