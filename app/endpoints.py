@@ -154,10 +154,10 @@ async def send_message(request: SendMessageEvent):
         document["question_id"]+=1
         
         # Update the chat history with the LLM response
-        # database_handler.collection.update_one(
-        #     {"id_": id_},
-        #     {"$set": document}
-        # )
+        database_handler.collection.update_one(
+            {"id_": id_},
+            {"$set": document}
+        )
         responce={
             "id_": id_,
             "type": etype,
@@ -177,10 +177,10 @@ async def send_message(request: SendMessageEvent):
         new_llm_response=agents.chatAgent.execute_task(ChatTask)
         document["chat_history"].append({"llm_response":new_llm_response})
         # Update the chat history with the LLM response
-        # database_handler.collection.update_one(
-        #     {"id_": id_},
-        #     {"$set": document}
-        # )
+        database_handler.collection.update_one(
+            {"id_": id_},
+            {"$set": document}
+        )
         responce={
             "id_": id_,
             "type": etype,
