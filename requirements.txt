@@ -1,6 +1,8 @@
 fastapi
 uvicorn
 pydantic
+pymongo
 groq
 python-dotenv
 crewai
+openai
