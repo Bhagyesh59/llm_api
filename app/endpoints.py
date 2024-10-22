@@ -1,6 +1,6 @@
 import hashlib
 from typing import Union
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.models import Summary, Chat, Name, SendMessageEvent
 from .util_function import (
     retrieve_context_from_vector_store,
@@ -8,6 +8,9 @@ from .util_function import (
     get_next_question,
     parse_question_answer,
     parse_llm_output,
+    Retrieve_chat_history,
+    prepare_chat_task,
+    update_new_chat_history,
 )
 from app.agents import summary, chat
 import uuid
@@ -115,112 +118,113 @@ async def create_chat_session(request: Name):
 
 @router.post("/chat/{session_id}")
 async def send_message(request: SendMessageEvent):
-    id_ = request.id_
-    etype = request.etype
-    platform = request.platform
-    timestamp = request.timestamp
-    data = request.data
-    document = database_handler.collection.find_one({"id_": id_})
-    chathistory = document["chat_history"]
-    # Retrieve and compare chat history
-    previous_messages, new_messages = await compare_chat_history(id_, data, chathistory)
-    print(new_messages)
-    if new_messages:
+    try:
+        # Extract request data
+        id_ = request.id_
+        etype = request.etype
+        platform = request.platform
+        timestamp = request.timestamp
+        data = request.data
 
-        updatedchat_history = previous_messages + new_messages
+        # Fetch document from the database
+        document = database_handler.collection.find_one({"id_": id_})
+        chathistory = document["chat_history"]
 
-    else:
-
-        updatedchat_history = previous_messages
-    print(updatedchat_history)
-    # Get the most recent user message
-    user_message = data[-1].message
-    document["chat_history"].append({"user_input": user_message})
-    # Retrieve relevant context from the vector store
-    context = await retrieve_context_from_vector_store(user_message)
-    answer = ""
-    question = get_next_question(
-        artifacts.question_flow, document["question_id"], answer
-    )
-
-    classify_task = agents.classify_task
-    classify_task.description = classify_task.description.format(
-        question=question["next_question"], usermessage=user_message
-    )
-    output = agents.classifier.execute_task(classify_task)
-    parsed_output = parse_llm_output(output)
-
-    if parsed_output["agent"] == "QuestionAnswer":
-
-        QandAtsak = agents.QandATask
-        QandAtsak.description = QandAtsak.description.format(
-            question=question["next_question"], usermessage=user_message
+        # Compare chat history
+        previous_messages, new_messages = await compare_chat_history(
+            id_, data, chathistory
         )
-        qaoutput = agents.classifier.execute_task(agents.QandATask)
-        questionandanswer = parse_llm_output(qaoutput)
-        next_question = get_next_question(
+        updated_chat_history = (
+            previous_messages + new_messages if new_messages else previous_messages
+        )
+
+        # Get the most recent user message
+        user_message = data[-1].message
+        document["chat_history"].append({"user_input": user_message})
+
+        # Retrieve context
+        context = await retrieve_context_from_vector_store(user_message)
+
+        # Get next question from the question flow
+        answer = ""
+        question = get_next_question(
             artifacts.question_flow, document["question_id"], answer
         )
 
-        ChatTask = agents.ChatTask
-        ChatTask.description = ChatTask.description.format(
-            question=next_question["next_question"],
-            updated_chat_history=str(updatedchat_history),
-            usermessage=str(user_message),
-            context=context,
+        # Classify the message
+        classify_task = agents.classify_task
+        classify_task.description = classify_task.description.format(
+            question=question["next_question"], usermessage=user_message
         )
-        new_llm_response = agents.chatAgent.execute_task(ChatTask)
+        output = agents.classifier.execute_task(classify_task)
+        parsed_output = parse_llm_output(output)
 
-        document["chat_history"].append({"llm_response": new_llm_response})
-        document["question_answered"].append(questionandanswer)
-        document["question_id"] += 1
+        # Handle QuestionAnswer case
+        if parsed_output["agent"] == "QuestionAnswer":
+            QandATask = agents.QandATask
+            QandATask.description = QandATask.description.format(
+                question=question["next_question"], usermessage=user_message
+            )
+            qa_output = agents.classifier.execute_task(QandATask)
+            question_and_answer = parse_llm_output(qa_output)
 
-        # Update the chat history with the LLM response
-        # database_handler.collection.update_one(
-        #     {"id_": id_},
-        #     {"$set": document}
-        # )
-        responce = {
-            "id_": id_,
-            "type": etype,
-            "platform": platform,
-            "status": "success",
-            "updated_chat_history": updatedchat_history,
-            "llm_response": new_llm_response,
-            "timestamp": timestamp,
-            "temp": "0",
-        }
+            # Get next question in the flow
+            next_question = get_next_question(
+                artifacts.question_flow, document["question_id"], answer
+            )
 
-    else:
+            # Execute ChatTask
+            new_llm_response = prepare_chat_task(
+                next_question["next_question"],
+                user_message,
+                str(updated_chat_history),
+                context,
+            )
 
-        ChatTask = agents.ChatTask
-        ChatTask.description = ChatTask.description.format(
-            question=question["next_question"],
-            usermessage=str(user_message),
-            updated_chat_history=str(updatedchat_history),
-            context=context,
+            # Update document with response and question-answer
+            document["chat_history"].append({"llm_response": new_llm_response})
+            document["question_answered"].append(question_and_answer)
+            document["question_id"] += 1
+
+            # Update database
+            update_new_chat_history(id_, document)
+
+            response = {
+                "id_": id_,
+                "type": etype,
+                "platform": platform,
+                "status": "success",
+                "updated_chat_history": updated_chat_history,
+                "llm_response": new_llm_response,
+                "timestamp": timestamp,
+                "temp": "0",
+            }
+        # Handle SimpleChat case
+        else:
+            new_llm_response = prepare_chat_task(
+                question["next_question"],
+                user_message,
+                str(updated_chat_history),
+                context,
+            )
+
+            # Update document with response
+            document["chat_history"].append({"llm_response": new_llm_response})
+            update_new_chat_history(id_, document)
+
+            response = {
+                "id_": id_,
+                "type": etype,
+                "platform": platform,
+                "status": "success",
+                "updated_chat_history": updated_chat_history,
+                "llm_response": new_llm_response,
+                "timestamp": timestamp,
+                "temp": "1",
+            }
+
+        return response
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"last Error processing message: {e}"
         )
-        new_llm_response = agents.chatAgent.execute_task(ChatTask)
-        document["chat_history"].append({"llm_response": new_llm_response})
-        # Update the chat history with the LLM response
-        # database_handler.collection.update_one(
-        #     {"id_": id_},
-        #     {"$set": document}
-        # )
-        responce = {
-            "id_": id_,
-            "type": etype,
-            "platform": platform,
-            "status": "success",
-            "updated_chat_history": updatedchat_history,
-            "llm_response": new_llm_response,
-            "timestamp": timestamp,
-            "temp": "1",
-        }
-
-    # logging.info(f"Generated Prompt:\n{prompt}")
-    # Send updated chat history and context to the LLM for a response
-
-    # logging.info(f"LLM Response:\n{llm_response}")
-
-    return responce
