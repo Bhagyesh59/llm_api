@@ -2,6 +2,7 @@ from crewai import Agent, Task, Crew, Process
 from crewai_tools import BaseTool, tool
 import os
 from textwrap import dedent
+from app.models import IdealCandidateProfile
 
 os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 os.environ["OPENAI_MODEL_NAME"] = "llama3-70b-8192"
@@ -156,6 +157,52 @@ ChatTask = Task(
     expected_output="Response to the user's question or continuation of the conversation.",
 )
 
+csp = Agent(
+    role="Ideal Profile Generator",
+    goal="""Given the following job description, analyze it to create an ideal candidate profile in JSON format. The profile should include these fields:
+
+	1.	“titles”: Suggested job titles based on the job description .
+	2.	“skills”: Core technical or soft skills required for the role .
+	3.	“locations”: Relevant locations mentioned, including preferred cities, remote options, or regions.
+	4.	“companies”: Any preferred or relevant companies implied in the description based on specific requirements or notable partnerships.
+	5.	“industries”: Relevant industries for the role, based on context .
+	6.	“keywords”: Important keywords that align closely with job responsibilities, preferred skills, and technologies.
+
+Carefully analyze both explicit and implicit details in the job description to generate the JSON, following this template:
+{
+	"titles": ["Suggested job title(s)"],
+	"skills": ["Key skills"],
+	"locations": ["Preferred location(s)"],
+	"companies": ["Suggested companies if relevant"],
+	"industries": ["Suggested industries"],
+	"keywords": ["Relevant keywords from description"]
+}
+For any field without available information, return an empty list ([])
+Ensure the JSON output includes information drawn directly from the job description, including inferred information where appropriate.""",
+    backstory="""You are expert in reading Job Description and 
+    """,
+    allow_delegation=False,
+    tools=[],
+)
+
+csptask = Task(
+    description="""
+    Job Description:
+    {JobDescription}
+    """,
+    expected_output="""{
+	"titles": [],
+	"skills": ["Key skills"],
+	"locations": ["Preferred location(s)"],
+	"companies": ["Suggested companies if relevant"],
+	"industries": ["Suggested industries"],
+	"keywords": ["Relevant keywords from description"]
+}
+    """,
+    output_json=IdealCandidateProfile,
+    agent=csp,
+)
+
 
 # crew = Crew(
 #     agents=[],
@@ -163,3 +210,17 @@ ChatTask = Task(
 #     verbose=True,
 #     process=Process.sequential
 # )
+def cspcrew(jobdescription: str, csptask) -> str:
+
+    csptask = csptask
+    csptask.description = csptask.description.format(JobDescription=jobdescription)
+    crew = Crew(
+        agents=[csp],
+        tasks=[csptask],
+        process=Process.sequential,
+        max_rpm=10,
+        # custom_llm_provider='groq',
+        # verbose=True,
+    )
+    result = crew.kickoff()
+    return result.json_dict

@@ -1,7 +1,7 @@
 import hashlib
 from typing import Union
 from fastapi import APIRouter, HTTPException
-from app.models import Summary, Chat, Name, SendMessageEvent
+from app.models import Summary, Chat, Name, SendMessageEvent, CSP
 from .util_function import (
     retrieve_context_from_vector_store,
     compare_chat_history,
@@ -11,6 +11,7 @@ from .util_function import (
     Retrieve_chat_history,
     prepare_chat_task,
     update_new_chat_history,
+    parse_candidate_profile,
 )
 from app.agents import summary, chat
 import uuid
@@ -228,3 +229,14 @@ async def send_message(request: SendMessageEvent):
         raise HTTPException(
             status_code=500, detail=f"last Error processing message: {e}"
         )
+
+
+@router.post("/csp")
+async def send_message(request: CSP):
+
+    id_ = request.id_
+    jobdescription = request.jobdescription
+
+    cspoutput = agents.cspcrew(jobdescription, agents.csptask)
+
+    return {"id": id_, "csp": cspoutput}

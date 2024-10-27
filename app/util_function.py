@@ -6,6 +6,8 @@ from app import database_handler
 import ast
 import json
 from app.agents import agents
+from pydantic import ValidationError
+from app.models import IdealCandidateProfile
 
 
 def extract_yaml(output_text):
@@ -174,3 +176,18 @@ async def update_new_chat_history(id_: str, updated_data: dict):
         database_handler.collection.update_one({"id_": id_}, {"$set": updated_data})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database update failed: {e}")
+
+
+def parse_candidate_profile(json_data: str) -> IdealCandidateProfile:
+    try:
+        # Load JSON data from string
+        data = json.loads(json_data)
+
+        # Parse and validate data using the Pydantic model
+        candidate_profile = IdealCandidateProfile(**data)
+
+        return candidate_profile
+    except json.JSONDecodeError:
+        print("Invalid JSON format.")
+    except ValidationError as e:
+        print("Validation error:", e)
