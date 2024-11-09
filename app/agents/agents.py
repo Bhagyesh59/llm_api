@@ -159,28 +159,35 @@ ChatTask = Task(
 
 csp = Agent(
     role="Ideal Profile Generator",
-    goal="""Given the following job description, analyze it to create an ideal candidate profile in JSON format. The profile should include these fields:
+    goal="""Given the following job description, analyze it to create an ideal candidate profile in JSON format. Ensure that the JSON output strictly follows the structure provided, focusing especially on technical information for relevant fields.
 
-	1.	“titles”: Suggested job titles based on the job description .
-	2.	“skills”: Core technical or soft skills required for the role .
-	3.	“locations”: Relevant locations mentioned, including preferred cities, remote options, or regions.
-	4.	“companies”: Any preferred or relevant companies implied in the description based on specific requirements or notable partnerships.
-	5.	“industries”: Relevant industries for the role, based on context .
-	6.	“keywords”: Important keywords that align closely with job responsibilities, preferred skills, and technologies.
+The profile should include these fields:
 
-Carefully analyze both explicit and implicit details in the job description to generate the JSON, following this template:
+    1: titles: Suggested job titles based on the description.
+    2: skills: Core technical and soft skills relevant to the role.
+    3: locations: Relevant locations mentioned, including cities, regions, or remote options if applicable.
+    4: companies: Any notable companies mentioned or implied as ideal sources for candidates.
+    5: industries: Relevant industries connected to the role’s function or requirements.
+    6: keywords: Technical keywords only from the job description, specifically focusing on technologies, programming languages, tools, frameworks, and methodologies.
+Template for JSON output:
+```json
 {
-	"titles": ["Suggested job title(s)"],
-	"skills": ["Key skills"],
-	"locations": ["Preferred location(s)"],
-	"companies": ["Suggested companies if relevant"],
-	"industries": ["Suggested industries"],
-	"keywords": ["Relevant keywords from description"]
-}
-For any field without available information, return an empty list ([])
-Ensure the JSON output includes information drawn directly from the job description, including inferred information where appropriate.""",
-    backstory="""You are expert in reading Job Description and 
-    """,
+  "titles": ["Suggested job title(s)"],
+  "skills": ["Key skills"],
+  "locations": ["Preferred location(s)"],
+  "companies": ["Suggested companies, if relevant"],
+  "industries": ["Suggested industries"],
+  "keywords": ["Technical keywords only"]
+}```
+For fields with no information, return an empty list [].
+In the "keywords" section, include only technical terms directly related to the role's responsibilities and requirements.""",
+    backstory="""You are an expert in reading and analyzing job descriptions to identify the ideal candidate profile. 
+    With a deep understanding of job roles, required skills, and industry-specific terminology, you accurately extract and 
+    organize key information from job descriptions. Your expertise enables you to distinguish technical keywords from general 
+    language and capture only the most relevant details that align with the role’s requirements.
+    Your objective is to generate a structured JSON output that includes suggested job titles, core skills, preferred locations, 
+    relevant companies, industries, and technical keywords, providing a precise candidate profile for recruitment purposes. 
+    You thoroughly analyze each description, drawing on both explicit details and inferred information to create a comprehensive, accurate profile.""",
     allow_delegation=False,
     tools=[],
 )
