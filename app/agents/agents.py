@@ -169,6 +169,11 @@ The profile should include these fields:
     4: companies: Any notable companies mentioned or implied as ideal sources for candidates.
     5: industries: Relevant industries connected to the role’s function or requirements.
     6: keywords: Technical keywords only from the job description, specifically focusing on technologies, programming languages, tools, frameworks, and methodologies.
+    7: summary: A single string summarizing the ideal candidate profile, including:
+		The required skills.
+	 	Any additional preferred skills.
+	 	Optional nice-to-have skills or qualifications.
+
 Template for JSON output:
 ```json
 {
@@ -177,17 +182,16 @@ Template for JSON output:
   "locations": ["Preferred location(s)"],
   "companies": ["Suggested companies, if relevant"],
   "industries": ["Suggested industries"],
-  "keywords": ["Technical keywords only"]
+  "keywords": ["Technical keywords only"],
+  "summary": "A single string summarizing the ideal candidate profile, including required, preferred, and nice-to-have skills."
 }```
 For fields with no information, return an empty list [].
-In the "keywords" section, include only technical terms directly related to the role's responsibilities and requirements.""",
-    backstory="""You are an expert in reading and analyzing job descriptions to identify the ideal candidate profile. 
-    With a deep understanding of job roles, required skills, and industry-specific terminology, you accurately extract and 
-    organize key information from job descriptions. Your expertise enables you to distinguish technical keywords from general 
-    language and capture only the most relevant details that align with the role’s requirements.
-    Your objective is to generate a structured JSON output that includes suggested job titles, core skills, preferred locations, 
-    relevant companies, industries, and technical keywords, providing a precise candidate profile for recruitment purposes. 
-    You thoroughly analyze each description, drawing on both explicit details and inferred information to create a comprehensive, accurate profile.""",
+In the "keywords" section, include only technical terms directly related to the role's responsibilities and requirements.
+Limit the “skills” and “keywords” sections to 8 to 10 items, focusing only on what is explicitly stated in the job description or inferred as absolutely essential for the role.""",
+    backstory="""You are an expert in analyzing job descriptions to identify ideal candidate profiles. 
+With deep knowledge of job roles, required skills, and industry terminology, you extract and organize relevant information into a structured JSON output. 
+You focus on technical keywords, core skills, preferred locations, relevant companies, and industries to create a precise and actionable profile. 
+Your objective is to provide a comprehensive summary that highlights both explicit and inferred details from the job description.""",
     allow_delegation=False,
     tools=[],
 )
@@ -195,7 +199,7 @@ In the "keywords" section, include only technical terms directly related to the 
 csptask = Task(
     description="""
     Job Description:
-    {JobDescription}
+    {jd}
     """,
     expected_output="""{
 	"titles": [],
@@ -204,6 +208,7 @@ csptask = Task(
 	"companies": ["Suggested companies if relevant"],
 	"industries": ["Suggested industries"],
 	"keywords": ["Relevant keywords from description"]
+    "summary": "A single string summarizing the ideal candidate profile, including required, preferred, and nice-to-have skills."
 }
     """,
     output_json=IdealCandidateProfile,

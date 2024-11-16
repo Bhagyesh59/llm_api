@@ -82,10 +82,10 @@ class SendMessageEvent(BaseModel):
 
 
 class CSP(BaseModel):
-    id_:str
-    jobdescription:str
-    
-    
+    id_: str
+    jobdescription: str
+
+
 class IdealCandidateProfile(BaseModel):
     titles: List[str] = []
     skills: List[str] = []
@@ -93,3 +93,4 @@ class IdealCandidateProfile(BaseModel):
     companies: List[str] = []
     industries: List[str] = []
     keywords: List[str] = []
+    summary: str = ""
