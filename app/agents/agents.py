@@ -157,7 +157,6 @@ ChatTask = Task(
     expected_output="Response to the user's question or continuation of the conversation.",
 )
 
-
 csp = Agent(
     role="Ideal Profile Generator",
     goal="""Given the following job description, analyze it to create an ideal candidate profile in JSON format. Ensure that the JSON output strictly follows the structure provided, focusing especially on technical information for relevant fields.
