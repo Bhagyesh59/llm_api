@@ -1,0 +1,93 @@
+{
+    "_id": "6713ca7c85b6041a6a8a1b21",
+    "user_id": "64874cf5-3217-4a50-886c-ce3d6bbd0b34",
+    "project_id": "6732122be8ba3f21f1bda1f5",
+    "platform_id": "671356e336a6df7ac1bd0609",
+    "candidate_id": "672b7ade24c4dfdc69e423c7",
+    "messages": [
+        {
+            "id": 1,
+            "sender": "RECRUITER",
+            "content": "Hello! How are you?",
+            "timestamp": 1697625600.5455,
+            "isreplyof": null
+        },
+        {
+            "id": 2,
+            "sender": "CANDIDATE",
+            "content": "I'm doing well, thank you! How about you?",
+            "timestamp": 1697625700.3245,
+            "isreplyof": null
+        },
+        {
+            "id": 3,
+            "sender": "LLM",
+            "content": "Great to hear! I'm doing well too. Have you had a chance to look at the project details?",
+            "timestamp": 1697625800.2231,
+            "isreplyof": null
+        },
+        {
+            "id": 4,
+            "sender": "CANDIDATE",
+            "content": "Yes, I have. The project looks interesting!",
+            "timestamp": 1697625900.1258,
+            "isreplyof": null
+        },
+        {
+            "id": 5,
+            "sender": "RECRUITER",
+            "content": "I'm glad to hear that. Do you have any questions about the requirements?",
+            "timestamp": 1697626000.5123,
+            "isreplyof": null
+        },
+        {
+            "id": 6,
+            "sender": "CANDIDATE",
+            "content": "No questions at the moment. Everything seems clear.",
+            "timestamp": 1697626100.6456,
+            "isreplyof": null
+        },
+        {
+            "id": 7,
+            "sender": "CANDIDATE",
+            "content": "This is a follow-up message from the candidate.",
+            "timestamp": 1697626400.1234,
+            "isreplyof": null
+        },
+        {
+            "id": 8,
+            "sender": "CANDIDATE",
+            "content": "This is a single message new updated api.",
+            "timestamp": 1697626600.1234,
+            "isreplyof": null
+        },
+        {
+            "id": 9,
+            "sender": "CANDIDATE",
+            "content": "This is a single message new updated api.",
+            "timestamp": 1697626600.1234,
+            "isreplyof": null
+        },
+        {
+            "id": 10,
+            "sender": "RECRUITER",
+            "content": "This is a reply from the recruiter.",
+            "timestamp": 1697626500.5678,
+            "isreplyof": 1
+        },
+        {
+            "id": 11,
+            "sender": "LLM",
+            "content": "This is an AI-generated message for context.",
+            "timestamp": 1697626600.1234,
+            "isreplyof": null
+        },
+        {
+            "id": 12,
+            "sender": "CANDIDATE",
+            "content": "what is the the current salary package you can offer",
+            "timestamp": 1697626600.1234,
+            "isreplyof": null
+        }
+    ]
+}

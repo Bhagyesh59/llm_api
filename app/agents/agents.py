@@ -3,6 +3,7 @@ from crewai_tools import BaseTool, tool
 import os
 from textwrap import dedent
 from app.models import IdealCandidateProfile
+from .tools.tools import ContinueChat, RAGAgent, RecruiterCall, RAGToolfordata
 
 os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 os.environ["OPENAI_MODEL_NAME"] = "llama3-70b-8192"
@@ -134,7 +135,7 @@ QandATask = Task(
 
 ChatTask = Task(
     description="""
-        Continue the conversation by responding naturally based on the user's message and the provided context. 
+        Continue the conversation by responding naturally based on the user's message. 
         Handle the flow whether the user is asking a new question, continuing the conversation, or providing additional information.
 
         Question: 
@@ -223,7 +224,6 @@ csptask = Task(
 #     process=Process.sequential
 # )
 def cspcrew(jobdescription: str, csptask) -> str:
-
     csptask = csptask
     csptask.description = csptask.description.format(JobDescription=jobdescription)
     crew = Crew(
@@ -236,3 +236,121 @@ def cspcrew(jobdescription: str, csptask) -> str:
     )
     result = crew.kickoff()
     return result.json_dict
+
+
+tool_calling_agent = Agent(
+    role="Tool Calling Agent",
+    backstory=dedent(
+        """You are a sophisticated decision-making agent designed to manage user queries effectively and hand over 
+        tasks to the appropriate sub-agent or tool. Your primary responsibility is to analyze the user's question, 
+        their short chat history, and the ongoing conversation summary to identify the most suitable tool or agent to handle the query.
+
+        If the user's question directly matches a topic in the recruiter-specific conditions (e.g., salary, job benefits), 
+        you must call the 'RecruiterCall' agent. Otherwise, you must prioritize calling:
+        - 'ContinueChat' for casual conversations or unclear intents.
+        - 'RAGAgent' for job-related queries requiring factual database lookups.
+"""
+    ),
+    goal=dedent(
+        """Your main goals are:
+        1. Understand the user's intent by analyzing their question, chat history, and conversation summary.
+        2. If the user's question matches a recruiter-specific condition, call the 'RecruiterCall' agent.
+        3. Otherwise, decide between:
+           - 'ContinueChat' for casual or conversational topics.
+           - 'RAGAgent' for technical or job-related queries that need database retrieval.
+        4. Ensure recruiter-specific conditions are always checked first and are editable:
+           - Salary
+           - Job benefits
+        5. Always delegate tasks to the most appropriate agent, ensuring no user query is left unanswered."""
+    ),
+    tools=[
+        ContinueChat(result_as_answer=True),
+        RAGAgent(result_as_answer=True),
+        RecruiterCall(result_as_answer=True),
+    ],
+    allow_delegation=False,
+    verbose=True,
+)
+# Define task logic for tool calling
+tool_calling_task = Task(
+    description=dedent(
+        """
+        Analyze the user's question, short chat history, and summary to determine which tool or agent to call:
+        - Check if the user's question matches one of the recruiter-specific conditions:
+          - Salary
+          - Job benefits
+
+        - If a match is found, call 'RecruiterCall'.
+        - If no match is found:
+          - Use 'ContinueChat' for casual conversations or unclear topics.
+          - Use 'RAGAgent' for job-related or technical queries.
+             
+        User Input:
+      
+            user_question: 
+            "{usermessage}",
+            chat_history: 
+            "{chathistory}",
+            chat_summary: 
+            ""
+
+
+    """
+    ),
+    agent=tool_calling_agent,
+    expected_output=dedent(
+        """s
+        {"tool": "Tool name","parameters": {"message": "user question as a string not a dictionary"}}
+    """
+    ),
+)
+
+
+recruiter_agent = Agent(
+    role="Recruiter Assistant",
+    backstory=dedent(
+        """You are an intelligent Recruiter Assistant powered by Retrieval-Augmented Generation (RAG). Your main responsibility 
+        is to assist recruiters by answering candidate questions related to job descriptions. You are equipped with a vector database 
+        containing job-related information to provide accurate and detailed answers.
+
+        When candidates ask about job responsibilities, required skills, or other job-related details, you use the vector database to retrieve
+        relevant context and provide a clear response. If no relevant data is found, you gracefully respond with try to continue with a natural conversation to ensure honesty and transparency.
+
+        You are designed to enhance the recruiter-candidate interaction by saving time and delivering precise information."""
+    ),
+    goal=dedent(
+        """Your main goals are:
+        1. Analyze the candidate's question and use the 'RAGTool' to query the vector database for relevant information.
+        2. Provide clear and concise answers to candidate questions based on the retrieved data.
+        3. If no relevant data is found in the vector database, respond with try to continue with a natural conversation or a similar fallback response to maintain transparency.
+        4. Use the provided chat history for additional context, if necessary, to ensure the best possible answer.
+        5. Enhance recruiter-candidate interactions by being an effective and knowledgeable assistant, focused on job-related queries."""
+    ),
+    tools=[RAGToolfordata()],
+    allow_delegation=False,
+    verbose=True,
+    max_retry_limit=1,
+)
+
+
+rag_task = Task(
+    description=dedent(
+        """
+    The Recruiter Assistant will:
+    1. Receive the candidate's question and chat history as input.
+    2. Use the 'RAGTool' to query the vector database for any relevant context related to the job description.
+    3. Provide an answer based on the retrieved data from the database.
+    4. If no data is found, try to continue with a natural conversation.
+    
+    User Question:
+    {message}}
+    
+"""
+    ),
+    agent=recruiter_agent,
+    expected_output=dedent(
+        """
+       "The responce according to the question and data present."}
+    """
+    ),
+)

@@ -5,15 +5,17 @@ from pymongo import MongoClient
 app = FastAPI()
 
 
-client = MongoClient("mongodb+srv://LLM_User:User_llm01@clusterllm.saneb.mongodb.net/?retryWrites=true&w=majority&appName=ClusterLLM")
-db = client['chat_db']
-collection = db['chat_history']
-vector_store = db['vector_store'] 
-
+client = MongoClient(
+    "mongodb+srv://LLM_User:User_llm01@clusterllm.saneb.mongodb.net/?retryWrites=true&w=majority&appName=ClusterLLM"
+)
+db = client["chat_db"]
+collection = db["chat_history"]
+vector_store = db["vector_store"]
 
 
 def test_vector_context():
-    context = {"context":'''
+    context = {
+        "context": """
          **Job Title: AI Engineer**
 
         **Location:** Florida (Remote or On-site options available)  
@@ -81,5 +83,6 @@ def test_vector_context():
         - Opportunities for professional development, training, and conferences.
         - Stock options or equity participation based on performance.
 
-        '''}
+        """
+    }
     return context

@@ -20,7 +20,7 @@ api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 
 def get_groq_client():
-    client = OpenAI(api_key = GROQ_API_KEY,base_url = GROQ_BASE_URL)
+    client = OpenAI(api_key=GROQ_API_KEY, base_url=GROQ_BASE_URL)
     return client
 
 
@@ -32,8 +32,11 @@ def verify_api_key(api_key: str = Depends(api_key_header)):
         print(f"Invalid API key: {api_key}")
         raise HTTPException(status_code=403, detail="Could not validate API key")
     print(f"API key validated: {api_key}")
-  
-async def _resp_async_generator(messages: List[Message], model: str, max_tokens: int, temperature: float):
+
+
+async def _resp_async_generator(
+    messages: List[Message], model: str, max_tokens: int, temperature: float
+):
     async with get_groq_client() as client:
         response = await client.post(
             "/chat/completions",
@@ -43,7 +46,7 @@ async def _resp_async_generator(messages: List[Message], model: str, max_tokens:
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "stream": True,
-            }
+            },
         )
 
         if response.status_code != 200:
@@ -55,17 +58,16 @@ async def _resp_async_generator(messages: List[Message], model: str, max_tokens:
             yield f"data: {json.dumps(chunk_data)}\n\n"
             await asyncio.sleep(0.01)  # Small delay to simulate streaming behavior
         yield "data: [DONE]\n\n"
-    
-    
+
+
 def not_streaming(messages):
     with get_groq_client() as client:
-
         response = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=messages,
-        temperature= 0.7,
-        max_tokens=512,
-        stream=False
+            model="llama3-70b-8192",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=512,
+            stream=False,
         )
         print(response.choices[0].message.content)
         return response

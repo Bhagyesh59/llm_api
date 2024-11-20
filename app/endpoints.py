@@ -1,7 +1,7 @@
 import hashlib
 from typing import Union
-from fastapi import APIRouter, HTTPException
-from app.models import Summary, Chat, Name, SendMessageEvent, CSP
+from fastapi import APIRouter, HTTPException, Response, status
+from app.models import Summary, Chat, Name, SendMessageEvent, CSP, ChatTest
 from .util_function import (
     retrieve_context_from_vector_store,
     compare_chat_history,
@@ -12,6 +12,13 @@ from .util_function import (
     prepare_chat_task,
     update_new_chat_history,
     parse_candidate_profile,
+    Retrieve_candidate_chat_data,
+    get_last_candidate_messages,
+    get_latestquestion,
+    parse_llm_tool_response,
+    extract_messages,
+    convert_to_sender_message_format,
+    getresponcetemp
 )
 from app.agents import summary, chat
 import uuid
@@ -21,6 +28,7 @@ import datetime
 from app import database_handler
 from app import artifacts
 from app.agents import agents
+from app.agents.crewstarter import OcCrew, RagCrew, SimpleChatCrew
 
 import logging
 
@@ -232,11 +240,69 @@ async def send_message(request: SendMessageEvent):
 
 
 @router.post("/csp")
-async def send_message(request: CSP):
-
+async def send_messages(request: CSP):
     id_ = request.id_
     jobdescription = request.jobdescription
 
     cspoutput = agents.cspcrew(jobdescription, agents.csptask)
 
     return {"id": id_, "csp": cspoutput}
+
+
+@router.post("/chattest")
+async def request(request: ChatTest, response: Response):
+    chat_id = request.chat_id
+
+    # Step 1: Retrieve the chat data
+    chatdata = await Retrieve_candidate_chat_data(chat_id)
+    # Step 1.5: Retrieve the chat history from chat data
+    chathistory = convert_to_sender_message_format(chatdata["messages"])
+
+    # Step 2: Compare the incoming data with the chat history
+    new_chat = get_last_candidate_messages(chatdata["messages"])
+    if new_chat:
+        # Step 3: Generate a question based on the chat history and incoming data
+        question = get_latestquestion()
+        questions_to_llm = extract_messages(new_chat)
+        # Step 4: Execute the question using the RAG agent
+        tool_response = OcCrew(questions_to_llm, chathistory)
+        print(tool_response)
+
+        def llm_responce(agent_name):
+
+            if agent_name["tool"] == "RAGAgent":
+                rag_answer = RagCrew(new_chat)
+                return rag_answer
+        
+            elif agent_name["tool"] == "ContinueChat":
+                continuechatResponce =  SimpleChatCrew(new_chat,question,chathistory)
+                
+                return continuechatResponce
+            elif agent_name["tool"] == "RecruiterCall":
+                recruiterCallResponse = True
+                return getresponcetemp(request.chat_id, "",datetime.datetime.now().isoformat(),recruiterCallResponse)
+
+        # Step 8: Parse the LLM response to get the final answer
+        final_answer = llm_responce(tool_response)
+        responce = getresponcetemp(
+            request.chat_id,
+            final_answer,
+            datetime.datetime.now().isoformat())
+
+        return responce
+    else:
+        status_code = status.HTTP_200_OK
+        # Step 10: Prepare the response
+        response = {
+            "status_code":status_code,
+            "message":"No new message found",
+            "data": {
+                "id_": request.chat_id,
+                "type": "llm_responce",
+                "llm_response": final_answer,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "temp": "0",
+            },
+            "error": None,
+        }
+        return response

@@ -3,8 +3,7 @@ from typing import Generator
 from groq import Groq
 import json
 
-st.set_page_config(page_icon="💬", layout="wide",
-                   page_title="Groq Goes Brrrrrrrr...")
+st.set_page_config(page_icon="💬", layout="wide", page_title="Groq Goes Brrrrrrrr...")
 
 st.subheader("Groq Chat Streamlit App", divider="rainbow", anchor=False)
 
@@ -66,7 +65,11 @@ models = {
     "gemma-7b-it": {"name": "Gemma-7b-it", "tokens": 8192, "developer": "Google"},
     "llama3-70b-8192": {"name": "LLaMA3-70b-8192", "tokens": 8192, "developer": "Meta"},
     "llama3-8b-8192": {"name": "LLaMA3-8b-8192", "tokens": 8192, "developer": "Meta"},
-    "mixtral-8x7b-32768": {"name": "Mixtral-8x7b-Instruct-v0.1", "tokens": 32768, "developer": "Mistral"},
+    "mixtral-8x7b-32768": {
+        "name": "Mixtral-8x7b-Instruct-v0.1",
+        "tokens": 32768,
+        "developer": "Mistral",
+    },
 }
 
 # Layout for model selection and max_tokens slider
@@ -77,7 +80,7 @@ with col1:
         "Choose a model:",
         options=list(models.keys()),
         format_func=lambda x: models[x]["name"],
-        index=2 # Default to mixtral
+        index=2,  # Default to mixtral
     )
 
 # Detect model change and clear chat history if model has changed
@@ -96,12 +99,12 @@ with col2:
         # Default value or max allowed if less
         value=min(32768, max_tokens_range),
         step=512,
-        help=f"Adjust the maximum number of tokens (words) for the model's response. Max for selected model: {max_tokens_range}"
+        help=f"Adjust the maximum number of tokens (words) for the model's response. Max for selected model: {max_tokens_range}",
     )
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    avatar = '🤖' if message["role"] == "assistant" else '👨‍💻'
+    avatar = "🤖" if message["role"] == "assistant" else "👨‍💻"
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
@@ -112,10 +115,11 @@ def generate_chat_responses(chat_completion) -> Generator[str, None, None]:
         if chunk.choices[0].delta.content:
             yield chunk.choices[0].delta.content
 
+
 if prompt := st.chat_input("Enter your prompt here..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    with st.chat_message("user", avatar='👨‍💻'):
+    with st.chat_message("user", avatar="👨‍💻"):
         st.markdown(prompt)
 
     # Fetch response from Groq API
@@ -126,15 +130,12 @@ if prompt := st.chat_input("Enter your prompt here..."):
             messages=[
                 {"role": "system", "content": system_prompt},  # Add system prompt
                 *[
-                    {
-                        "role": m["role"],
-                        "content": m["content"]
-                    }
+                    {"role": m["role"], "content": m["content"]}
                     for m in st.session_state.messages
-                ]
+                ],
             ],
             max_tokens=max_tokens,
-            stream=True
+            stream=True,
         )
 
         # Use the generator function to stream responses
@@ -143,11 +144,12 @@ if prompt := st.chat_input("Enter your prompt here..."):
             response_placeholder = st.empty()  # Placeholder for updating response
             for response_chunk in generate_chat_responses(chat_completion):
                 full_response += response_chunk
-                response_placeholder.markdown(full_response)  # Update response in real-time
-                    
+                response_placeholder.markdown(
+                    full_response
+                )  # Update response in real-time
+
     except Exception as e:
         st.error(e, icon="🚨")
 
     # Append the full response to session_state.messages
-    st.session_state.messages.append(
-        {"role": "assistant", "content": full_response})
+    st.session_state.messages.append({"role": "assistant", "content": full_response})

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 from typing import Any, List, Optional, Optional
 from enum import Enum
 
@@ -94,3 +94,7 @@ class IdealCandidateProfile(BaseModel):
     industries: List[str] = []
     keywords: List[str] = []
     summary: str = ""
+
+
+class ChatTest(BaseModel):
+    chat_id: str

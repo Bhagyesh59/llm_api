@@ -20,6 +20,7 @@ app.include_router(endpoints.router)
 async def root():
     return {"message": "Hello, FastAPI!"}
 
+
 # @app.get("/health")
 # async def healthCheck():
 #     return {"message": "success"}
@@ -31,4 +32,3 @@ async def root():
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
-    

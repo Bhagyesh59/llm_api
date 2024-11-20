@@ -1,13 +1,14 @@
 import re
 from typing import Any, List, Optional, Optional
 from app.models import Message
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from app import database_handler
 import ast
 import json
 from app.agents import agents
 from pydantic import ValidationError
 from app.models import IdealCandidateProfile
+import asyncio
 
 
 def extract_yaml(output_text):
@@ -191,3 +192,127 @@ def parse_candidate_profile(json_data: str) -> IdealCandidateProfile:
         print("Invalid JSON format.")
     except ValidationError as e:
         print("Validation error:", e)
+
+
+async def Retrieve_candidate_chat_data(chatid):
+    with open("candidatedoc.json", "r") as f:
+        doc = json.load(f)
+    # time delay of 0.5 sec
+    await asyncio.sleep(0.5)
+
+    return doc
+
+
+def get_last_candidate_messages(messages):
+    """
+    Get all the last consecutive messages sent by the CANDIDATE.
+
+    Args:
+        messages (list): List of message dictionaries, each containing a 'sender' key.
+
+    Returns:
+        list: A list of the last consecutive messages from the CANDIDATE, in chronological order.
+    """
+    last_candidate_messages = []
+    for message in reversed(messages):  # Iterate over messages in reverse order
+        if message["sender"] == "CANDIDATE":
+            last_candidate_messages.append(message)
+
+        else:
+            break  # Stop as soon as a message not from CANDIDATE is encountered
+    return list(
+        reversed(last_candidate_messages)
+    )  # Reverse to maintain chronological order
+
+
+def get_latestquestion():
+    qs = [
+        "Are you currently exploring new opportunities?",
+        "Could you tell me more about your current role?",
+        "Could you tell me about your experience?",
+    ]
+
+    return qs
+
+
+def parse_llm_tool_response(tool_response):
+    """
+    Parse the response from an LLM tool and extract the tool name and user message.
+
+    Args:
+        tool_response (str): JSON string containing the tool response.
+
+    Returns:
+        dict: A dictionary with 'tool' and 'message' keys if successful, otherwise an error message.
+    """
+    try:
+        # Parse the JSON string into a Python dictionary
+        response_data = json.loads(tool_response)
+
+        # Extract the tool name and message
+        tool_name = response_data.get("tool")
+        parameters = response_data.get("parameters", {})
+        user_message = parameters.get("message")
+
+        # Validate extracted data
+        if not tool_name or not user_message:
+            raise ValueError("Missing 'tool' or 'message' in the response.")
+
+        # Return the extracted data
+        return {"tool": tool_name, "message": user_message}
+
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON format."}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def extract_messages(data):
+    """
+    Processes a list of message data and concatenates the 'content' field from each entry
+    into a single string, separated by commas.
+
+    Args:
+        data (list): List of dictionaries containing message data.
+
+    Returns:
+        str: Concatenated messages.
+    """
+    # Extract the 'content' of each message and join them with commas
+    messages = ", ".join(entry.get("content", "") for entry in data)
+    return f"messages: {messages}"
+def convert_to_sender_message_format(data, sender_filter=None):
+    """
+    Converts a list of message data into a list of dictionaries with 'sender' and 'message' keys.
+
+    Args:
+        data (list): List of dictionaries containing message data.
+        sender_filter (str, optional): If specified, filters messages by sender.
+
+    Returns:
+        list: List of dictionaries in the format {"sender": <sender>, "message": <content>}.
+    """
+    # Filter data by sender if a filter is provided
+    filtered_data = (
+        [entry for entry in data if entry.get("sender") == sender_filter]
+        if sender_filter
+        else data
+    )
+
+    # Transform the data into the required format
+    result = [{"sender": entry["sender"], "message": entry["content"]} for entry in filtered_data]
+    return result
+def getresponcetemp(chat_id,final_answer,timestamp,recresponce=False,errors=None, ):
+    status_code=status.HTTP_200_OK
+    return {
+            "status_code":status_code,
+            "message":"Generated llm responce",
+            "data": {
+                "id_": chat_id,
+                "type": "llm_responce",
+                "llm_response": final_answer,
+                "timestamp": timestamp,
+                "recruiterCallResponse": recresponce
+            },
+            "error": errors,
+        }

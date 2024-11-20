@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from starlette.responses import StreamingResponse
 from fastapi.security.api_key import APIKeyHeader
-from app.models import Message,ChatCompletionRequest
+from app.models import Message, ChatCompletionRequest
 from dotenv import load_dotenv
 from openai import OpenAI
 from typing import Optional, List
@@ -10,7 +10,7 @@ import time
 import json
 import os
 
-from app.settings import GROQ_API_KEY,GROQ_LLM_URL
+from app.settings import GROQ_API_KEY, GROQ_LLM_URL
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,28 +22,30 @@ api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 router = APIRouter()
 
 client = OpenAI(
-  api_key = GROQ_API_KEY,
-  base_url = GROQ_LLM_URL,
+    api_key=GROQ_API_KEY,
+    base_url=GROQ_LLM_URL,
 )
 
+
 def verify_api_key(api_key: str = Depends(api_key_header)):
-  if api_key is None:
+    if api_key is None:
         print("API key is missing")
         raise HTTPException(status_code=403, detail="API key is missing")
-  if api_key != f"Bearer {API_KEY}":
-      print(f"Invalid API key: {api_key}")
-      raise HTTPException(status_code=403, detail="Could not validate API key")
-  print(f"API key validated: {api_key}")
+    if api_key != f"Bearer {API_KEY}":
+        print(f"Invalid API key: {api_key}")
+        raise HTTPException(status_code=403, detail="Could not validate API key")
+    print(f"API key validated: {api_key}")
 
 
-async def _resp_async_generator(messages: List[Message], model: str, max_tokens: int, temperature: float):
-   
+async def _resp_async_generator(
+    messages: List[Message], model: str, max_tokens: int, temperature: float
+):
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": m.role, "content": m.content} for m in messages],
         max_tokens=max_tokens,
         temperature=temperature,
-        stream=True
+        stream=True,
     )
 
     # Iterate over the response synchronously
@@ -56,36 +58,37 @@ async def _resp_async_generator(messages: List[Message], model: str, max_tokens:
 
 
 async def not_streaming(request: ChatCompletionRequest):
-    
     response = client.chat.completions.create(
-                model=request.model,
-                messages=[{"role": m.role, "content": m.content} for m in request.messages],
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
-            )
+        model=request.model,
+        messages=[{"role": m.role, "content": m.content} for m in request.messages],
+        max_tokens=request.max_tokens,
+        temperature=request.temperature,
+    )
     return response
-
 
 
 @router.post("/v1/chat/completions", dependencies=[Depends(verify_api_key)])
 async def chat_completions(request: ChatCompletionRequest):
-  if request.messages:
+    if request.messages:
         if request.stream:
             return StreamingResponse(
                 _resp_async_generator(
                     messages=request.messages,
                     model=request.model,
                     max_tokens=request.max_tokens,
-                    temperature=request.temperature
-                ), media_type="application/x-ndjson"
+                    temperature=request.temperature,
+                ),
+                media_type="application/x-ndjson",
             )
         else:
             response = client.chat.completions.create(
                 model=request.model,
-                messages=[{"role": m.role, "content": m.content} for m in request.messages],
+                messages=[
+                    {"role": m.role, "content": m.content} for m in request.messages
+                ],
                 max_tokens=request.max_tokens,
                 temperature=request.temperature,
             )
             return response
-  else:
-      return HTTPException(status_code=400, detail="No messages provided")
+    else:
+        return HTTPException(status_code=400, detail="No messages provided")
